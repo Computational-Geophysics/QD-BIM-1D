@@ -1,145 +1,133 @@
-# 1D Fault Evolution Simulator
+# 1D fault evolution simulator
 
 ## Overview
 
 This repository contains a numerical implementation of a one-dimensional quasi-dynamic fault evolution model using the Boundary Integral Method (BIM) with Dieterich-Ruina rate-and-state friction. The code simulates the spatiotemporal evolution of slip on a vertical strike-slip fault embedded in an elastic half-space, capturing the full earthquake cycle from interseismic loading through dynamic rupture and postseismic relaxation.
 
-## Physical Problem
+## Physical problem
 
 ### Geometry
 
 The model considers a vertical strike-slip fault in a homogeneous elastic half-space with the following coordinate system:
 
-- **x₁**: Along-strike direction (parallel to fault, out-of-plane)
-- **x₂**: Across-fault horizontal direction (perpendicular to fault)
-- **x₃**: Down-dip direction (depth, positive downward)
+- **$x_1$**: Along-strike direction (parallel to fault, out-of-plane)
+- **$x_2$**: Across-fault horizontal direction (perpendicular to fault)
+- **$x_3$**: Down-dip direction (depth, positive downward)
 
-The fault extends infinitely in the strike direction (x₁) and from the free surface (x₃ = 0) to a maximum depth. The problem is formulated as a 2D antiplane shear problem where:
+The fault extends infinitely in the strike direction ($x_1$) and from the free surface ($x_3 = 0$) to a maximum depth. The problem is formulated as a 2D antiplane shear problem where:
 
-- Only u₁ (strike-slip) displacements are non-zero
-- u₂ = u₃ = 0
-- All quantities vary only in the x₂-x₃ plane
-- Slip varies only along the down-dip direction (x₃)
+- Only $u_1$ (strike-slip) displacements are non-zero
+- $u_2 = u_3 = 0$
+- All quantities vary only in the $x_2$-$x_3$ plane
+- Slip varies only along the down-dip direction ($x_3$)
 
-### Boundary Conditions
+### Boundary conditions
 
-- **Free surface**: Zero shear stress at x₃ = 0
-- **Far-field loading**: Imposed through back-slip at tectonic plate rate Vₚₗ
+- **Free surface**: Zero shear stress at $x_3 = 0$
+- **Far-field loading**: Imposed through back-slip at tectonic plate rate $V_{\text{pl}}$
 - **Fault boundary**: Governed by rate-and-state friction law
 
-## Governing Equations
+## Governing equations
 
-### 1. Elastodynamic Stress Transfer
+### 1. Elastodynamic stress transfer
 
-The shear stress τ on the fault is related to slip δ through the elastostatic Green's functions:
+The shear stress $\tau$ on the fault is related to slip $\delta$ through the elastostatic Green's functions:
 
-```
-τ(x₃, t) = τ₀ + ∫ K(x₃, y₃) [δ(y₃, t) - Vₚₗ·t] dy₃ - η·V(x₃, t)
-```
+$$\tau(x_3, t) = \tau_0 + \int K(x_3, y_3) [\delta(y_3, t) - V_{\text{pl}} \cdot t] \, dy_3 - \eta \cdot V(x_3, t)$$
 
 where:
-- τ₀ is the initial stress
-- K(x₃, y₃) is the stress interaction kernel (computed using Okada's solutions)
-- Vₚₗ is the plate loading rate
-- η = μ/(2cₛ) is the radiation damping coefficient
-- V = dδ/dt is the slip rate
-- μ is the shear modulus
-- cₛ is the shear wave speed
+- $\tau_0$ is the initial stress
+- $K(x_3, y_3)$ is the stress interaction kernel (computed using Okada's solutions)
+- $V_{\text{pl}}$ is the plate loading rate
+- $\eta = \mu/(2c_s)$ is the radiation damping coefficient
+- $V = d\delta/dt$ is the slip rate
+- $\mu$ is the shear modulus
+- $c_s$ is the shear wave speed
 
 The radiation damping term approximates inertial effects in the quasi-dynamic formulation, providing a first-order correction to the quasi-static approximation.
 
-### 2. Rate-and-State Friction Law
+### 2. Rate-and-state friction law
 
 The fault resistance follows the regularized Dieterich-Ruina rate-and-state friction formulation:
 
-```
-τ = a·σ·asinh[V/(2V₀)·exp((f₀ + b·ψ)/a)]
-```
+$$\tau = a \sigma \, \text{asinh}\left[\frac{V}{2V_0} \exp\left(\frac{f_0 + b\psi}{a}\right)\right]$$
 
 where:
-- a, b are empirical friction parameters
-- σ is the effective normal stress
-- V₀ is a reference slip rate
-- f₀ is the reference friction coefficient
-- ψ = ln(θV₀/Dᶜ) is the normalized state variable
-- θ is the state variable with dimensions of time
-- Dᶜ is the critical slip distance
+- $a$, $b$ are empirical friction parameters
+- $\sigma$ is the effective normal stress
+- $V_0$ is a reference slip rate
+- $f_0$ is the reference friction coefficient
+- $\psi = \ln(\theta V_0/D_c)$ is the normalized state variable
+- $\theta$ is the state variable with dimensions of time
+- $D_c$ is the critical slip distance
 
-The regularized form (using asinh) avoids singularities at V = 0 and is numerically more stable than the standard logarithmic form.
+The regularized form (using asinh) avoids singularities at $V = 0$ and is numerically more stable than the standard logarithmic form.
 
-#### Friction Regimes
+#### Friction regimes
 
-- **Velocity-weakening (VW)**: b > a, unstable sliding, generates earthquakes
-- **Velocity-strengthening (VS)**: a > b, stable sliding, creeps steadily
+- **Velocity-weakening (VW)**: $b > a$, unstable sliding, generates earthquakes
+- **Velocity-strengthening (VS)**: $a > b$, stable sliding, creeps steadily
 
-### 3. State Evolution Law (Aging Law)
+### 3. State evolution law (aging law)
 
 The evolution of the state variable follows the aging law:
 
-```
-dθ/dt = 1 - V·θ/Dᶜ
-```
+$$\frac{d\theta}{dt} = 1 - \frac{V \theta}{D_c}$$
 
 This is transformed into logarithmic form for numerical stability:
 
-```
-dψ/dt = (V₀·exp(-ψ) - V)/Dᶜ
-```
+$$\frac{d\psi}{dt} = \frac{V_0 \exp(-\psi) - V}{D_c}$$
 
-where ψ = ln(θV₀/Dᶜ).
+where $\psi = \ln(\theta V_0/D_c)$.
 
-### 4. Slip Rate Evolution
+### 4. Slip Rate evolution
 
 Combining the friction law and stress balance, and taking time derivatives, yields the evolution equation for slip rate:
 
-```
-d(ln V)/dt = [K(V - Vₚₗ) - b·σ·(dψ/dt)·Q] / [a·σ·Q + η·V]
-```
+$$\frac{d(\ln V)}{dt} = \frac{K(V - V_{\text{pl}}) - b\sigma \frac{d\psi}{dt} Q}{a\sigma Q + \eta V}$$
 
 where:
 
-```
-Q = 1 / √[1 + (2V₀/V)²·exp(-2(f₀ + b·ψ)/a)]
-```
+$$Q = \frac{1}{\sqrt{1 + \left(\frac{2V_0}{V}\right)^2 \exp\left(-\frac{2(f_0 + b\psi)}{a}\right)}}$$
 
-This regularization factor Q ensures smooth behavior across all slip rates.
+This regularization factor $Q$ ensures smooth behavior across all slip rates.
 
-### 5. Complete ODE System
+### 5. Complete ODE system
 
 The full system consists of four coupled ordinary differential equations per fault cell:
 
-```
-dδ/dt = V                                    (slip evolution)
-dτ/dt = K(V - Vₚₗ) - η·V·d(ln V)/dt         (stress evolution)
-dψ/dt = (V₀·exp(-ψ) - V)/Dᶜ                 (state evolution)
-d(ln V)/dt = [equation above]                (velocity evolution)
-```
+$$\begin{align}
+\frac{d\delta}{dt} &= V && \text{(slip evolution)} \\
+\frac{d\tau}{dt} &= K(V - V_{\text{pl}}) - \eta V \frac{d(\ln V)}{dt} && \text{(stress evolution)} \\
+\frac{d\psi}{dt} &= \frac{V_0 \exp(-\psi) - V}{D_c} && \text{(state evolution)} \\
+\frac{d(\ln V)}{dt} &= \frac{K(V - V_{\text{pl}}) - b\sigma \frac{d\psi}{dt} Q}{a\sigma Q + \eta V} && \text{(velocity evolution)}
+\end{align}$$
 
-## Numerical Method
+## Numerical method
 
-### Spatial Discretization
+### Spatial discretization
 
-The fault is discretized into M uniform rectangular cells of width Δz:
+The fault is discretized into $M$ uniform rectangular cells of width $\Delta z$:
 
-- Cell positions: z_i = (i - 1)·Δz, i = 1, ..., M
-- Cell centers: z_i^c = z_i + Δz/2
+- Cell positions: $z_i = (i - 1)\Delta z$, $i = 1, \ldots, M$
+- Cell centers: $z_i^c = z_i + \Delta z/2$
 - Uniform slip assumed within each cell
 
-### Stress Interaction Kernels
+### Stress interaction kernels
 
-The stress kernel K_ij represents the shear stress at cell i due to unit slip on cell j. These kernels are computed using Okada's (1985, 1992) analytical solutions for rectangular dislocations in an elastic half-space. The free surface effect is incorporated through the method of images, requiring four terms per kernel evaluation:
+The stress kernel $K_{ij}$ represents the shear stress at cell $i$ due to unit slip on cell $j$. These kernels are computed using Okada's (1985, 1992) analytical solutions for rectangular dislocations in an elastic half-space. The free surface effect is incorporated through the method of images, requiring four terms per kernel evaluation:
 
 1. Direct contribution from the source patch
 2. Image contribution from the free surface
 3. Contribution from the bottom of the source patch
 4. Image contribution from the bottom of the source patch
 
-### Temporal Integration
+### Temporal integration
 
 The ODE system is solved using the `scipy.integrate.solve_ivp` function with the RK45 (Runge-Kutta 4-5) adaptive time-stepping method:
 
-- **Relative tolerance**: 10⁻⁸
-- **Absolute tolerance**: 10⁻⁶
+- **Relative tolerance**: $10^{-8}$
+- **Absolute tolerance**: $10^{-6}$
 - **Maximum time step**: Limited to prevent missing dynamic events
 - **Adaptive stepping**: Automatically refines during rapid slip (earthquakes)
 
@@ -147,62 +135,62 @@ The adaptive time-stepping is crucial as slip rates vary over 10+ orders of magn
 
 ## Code Structure
 
-### Section 1: Utility Functions
+### Section 1: Utility functions
 
 Provides mathematical helper functions including boxcar, Heaviside, and ramp functions used for defining spatially varying friction parameters.
 
-### Section 2: FaultProblem Class
+### Section 2: Faultproblem class
 
 Container class that organizes all model parameters including:
 - Bulk material properties (density, wave speeds, elastic moduli)
-- Frictional parameters (a, b, f₀, Dᶜ, V₀)
-- Loading conditions (σ, Vₚₗ)
+- Frictional parameters ($a$, $b$, $f_0$, $D_c$, $V_0$)
+- Loading conditions ($\sigma$, $V_{\text{pl}}$)
 - Numerical parameters (kernels, damping coefficients)
 
-### Section 3: Green's Functions
+### Section 3: Green's functions
 
 Implementation of elastostatic Green's functions:
 
-- `stress_kernel_sigma12()`: Computes shear stress σ₁₂ at receiver due to unit slip on source patch
-- `displacement_kernel_u1()`: Computes displacement u₁ at receiver due to unit slip on source
+- `stress_kernel_sigma12()`: Computes shear stress $\sigma_{12}$ at receiver due to unit slip on source patch
+- `displacement_kernel_u1()`: Computes displacement $u_1$ at receiver due to unit slip on source
 
 Both functions incorporate the free surface through the method of images.
 
-### Section 4: Spatial Discretization
+### Section 4: Spatial discretization
 
 Sets up the computational domain:
 - Defines fault geometry and grid spacing
 - Generates cell positions and boundaries
 - Creates virtual GPS receiver network for surface observations
 
-### Section 5: Compute Interaction Kernels
+### Section 5: Compute interaction kernels
 
-Assembles the full stress interaction kernel matrix K and surface displacement kernel:
+Assembles the full stress interaction kernel matrix $K$ and surface displacement kernel:
 - Evaluates Green's functions at all source-receiver pairs
 - Stores results in matrices for efficient computation
 
-### Section 6: Fault Frictional Properties
+### Section 6: Fault frictional properties
 
 Defines spatially varying friction parameters:
-- Reference friction coefficient f₀
-- Direct effect parameter a (may vary with depth)
-- Evolution effect parameter b
-- Normal stress σ
-- Critical slip distance Dᶜ
-- Plate rate Vₚₗ
-- Radiation damping coefficient η
+- Reference friction coefficient $f_0$
+- Direct effect parameter $a$ (may vary with depth)
+- Evolution effect parameter $b$
+- Normal stress $\sigma$
+- Critical slip distance $D_c$
+- Plate rate $V_{\text{pl}}$
+- Radiation damping coefficient $\eta$
 
-### Section 7: Characteristic Scales and Validation
+### Section 7: Characteristic scales and validation
 
 Computes diagnostic quantities to validate the numerical setup:
 
-- **Critical nucleation size**: h* = (π/2)·(μbDᶜ)/[(b-a)²σ]
-- **Cohesive zone size**: Λ = (9π/32)·(μDᶜ)/(bσ)
-- **Recurrence interval**: T ≈ 5(b-a)σL/(2μVₚₗ)
+- **Critical nucleation size**: $h^* = \frac{\pi}{2} \frac{\mu b D_c}{(b-a)^2 \sigma}$
+- **Cohesive zone size**: $\Lambda = \frac{9\pi}{32} \frac{\mu D_c}{b\sigma}$
+- **Recurrence interval**: $T \approx \frac{5(b-a)\sigma L}{2\mu V_{\text{pl}}}$
 
-Checks that grid resolution satisfies Δz < Λ/3 for numerical accuracy.
+Checks that grid resolution satisfies $\Delta z < \Lambda/3$ for numerical accuracy.
 
-### Section 8: Governing Equations
+### Section 8: Governing equations
 
 Implements the `rate_state_ode_system()` function that computes time derivatives for the ODE solver. This function:
 
@@ -214,7 +202,7 @@ Implements the `rate_state_ode_system()` function that computes time derivatives
 6. Computes velocity evolution from friction-stress balance
 7. Updates stress evolution
 
-### Section 9: Initial Conditions
+### Section 9: Initial conditions
 
 Establishes steady-state initial conditions:
 - Zero initial slip
@@ -222,73 +210,73 @@ Establishes steady-state initial conditions:
 - State variable consistent with steady-state friction
 - Uniform velocity equal to plate rate
 
-### Section 10: Time Integration
+### Section 10: Time integration
 
 Solves the ODE system using adaptive Runge-Kutta integration:
 - Configures solver parameters and tolerances
 - Monitors and reports computation progress
 - Handles stiff dynamics during earthquake rupture
 
-### Section 11: Post-Processing and Analysis
+### Section 11: Post-processing and analysis
 
 Extracts and processes results:
 - Computes slip rates and maximum slip rates over time
 - Evaluates synthetic surface displacements at GPS stations
 - Identifies earthquake events and characteristic behavior
 
-### Section 12: Visualization
+### Section 12: visualization
 
 Generates three figure sets:
 
-1. **Space-Time Diagrams**: Color maps showing log₁₀(V) evolution in depth-time space and maximum slip rate time series
+1. **Space-Time Diagrams**: Color maps showing $\log_{10}(V)$ evolution in depth-time space and maximum slip rate time series
 2. **Time-Step Domain**: Same plots in time-step coordinates to reveal adaptive stepping behavior
 3. **Synthetic GPS**: Surface displacement profiles and time series at near-field and far-field stations
 
-## Key Physical Parameters
+## Key Physical parameters
 
 ### Material Properties
-- **Density**: ρ = 2670 kg/m³
-- **Shear wave speed**: cₛ = 3464 m/s
-- **Shear modulus**: μ = ρcₛ² ≈ 32 GPa
+- **Density**: $\rho = 2670$ kg/m³
+- **Shear wave speed**: $c_s = 3464$ m/s
+- **Shear modulus**: $\mu = \rho c_s^2 \approx 32$ GPa
 
-### Friction Parameters
-- **Reference friction**: f₀ = 0.6
-- **Direct effect**: a = 0.01 - 0.025 (depth-dependent)
-- **Evolution effect**: b = 0.015
-- **Critical slip distance**: Dᶜ = 8 mm
-- **Reference velocity**: V₀ = 10⁻⁶ m/s
+### Friction parameters
+- **Reference friction**: $f_0 = 0.6$
+- **Direct effect**: $a = 0.01 - 0.025$ (depth-dependent)
+- **Evolution effect**: $b = 0.015$
+- **Critical slip distance**: $D_c = 8$ mm
+- **Reference velocity**: $V_0 = 10^{-6}$ m/s
 
-### Loading Conditions
-- **Normal stress**: σ = 50 MPa
-- **Plate rate**: Vₚₗ = 10⁻⁹ m/s (≈ 31.5 mm/yr)
+### Loading conditions
+- **Normal stress**: $\sigma = 50$ MPa
+- **Plate rate**: $V_{\text{pl}} = 10^{-9}$ m/s (≈ 31.5 mm/yr)
 
-### Domain Configuration
+### Domain configuration
 - **Fault depth**: 40 km
 - **Number of cells**: 400
 - **Cell size**: 100 m
 - **Velocity-weakening zone**: ~15-16 km depth range
 
-## Model Capabilities
+## Model capabilities
 
 This implementation can simulate:
 
 1. **Full earthquake cycles**: Interseismic loading, nucleation, dynamic rupture, and postseismic processes
 2. **Multiple earthquake events**: Long-term behavior over hundreds of years
-3. **Realistic slip rate variations**: From plate rate (~10⁻⁹ m/s) to seismic slip (~1 m/s)
+3. **Realistic slip rate variations**: From plate rate ($\sim 10^{-9}$ m/s) to seismic slip ($\sim 1$ m/s)
 4. **Surface deformation**: Synthetic GPS time series for comparison with observations
 5. **Parametric studies**: Effects of friction properties, loading rates, and fault geometry
 
 ## Theoretical Background
 
-### Quasi-Dynamic Approximation
+### Quasi-dynamic approximation
 
-The quasi-dynamic approximation includes radiation damping (η·V term) to account for inertial effects without solving the full wave equation. This is valid when:
+The quasi-dynamic approximation includes radiation damping ($\eta V$ term) to account for inertial effects without solving the full wave equation. This is valid when:
 
-- Rupture velocities remain sub-Rayleigh (V < cₛ)
+- Rupture velocities remain sub-Rayleigh ($V < c_s$)
 - Interest is in long-term behavior rather than detailed dynamic rupture
 - Computational efficiency is important for multi-cycle simulations
 
-### Regularized Rate-and-State Friction
+### Regularized Rate-and-state friction
 
 The regularized form using asinh instead of ln provides:
 
@@ -296,17 +284,17 @@ The regularized form using asinh instead of ln provides:
 - Smooth behavior during the transition from quasi-static to dynamic slip
 - Elimination of singularities in the original formulation
 
-### State Evolution Laws
+### State evolution laws
 
 The aging law (used here) assumes:
 
 - State evolution depends on contact time and slip
 - Appropriate for modeling earthquake nucleation
-- Produces velocity-weakening behavior when b > a
+- Produces velocity-weakening behavior when $b > a$
 
 Alternative formulations (slip law, composite laws) exist but are not implemented in this version.
 
-## Validation and Benchmarking
+## Validation and benchmarking
 
 The code has been validated against:
 
@@ -316,7 +304,7 @@ The code has been validated against:
 
 Grid resolution requirements are automatically checked against the cohesive zone size to ensure numerical accuracy.
 
-## Output Files
+## Output files
 
 The code generates:
 
@@ -335,19 +323,19 @@ All plots include proper units, labels, and physical interpretation aids.
 
 ## References
 
-### Fundamental Theory
+### Fundamental theory
 
 - Dieterich, J. H. (1979). Modeling of rock friction: 1. Experimental results and constitutive equations. *Journal of Geophysical Research*, 84(B5), 2161-2168.
 - Ruina, A. (1983). Slip instability and state variable friction laws. *Journal of Geophysical Research*, 88(B12), 10359-10370.
 - Rice, J. R., Lapusta, N., & Ranjith, K. (2001). Rate and state dependent friction and the stability of sliding between elastically deformable solids. *Journal of the Mechanics and Physics of Solids*, 49(9), 1865-1898.
 
-### Numerical Methods
+### Numerical methods
 
 - Okada, Y. (1985). Surface deformation due to shear and tensile faults in a half-space. *Bulletin of the Seismological Society of America*, 75(4), 1135-1154.
 - Okada, Y. (1992). Internal deformation due to shear and tensile faults in a half-space. *Bulletin of the Seismological Society of America*, 82(2), 1018-1040.
 - Lapusta, N., Rice, J. R., Ben-Zion, Y., & Zheng, G. (2000). Elastodynamic analysis for slow tectonic loading with spontaneous rupture episodes on faults with rate- and state-dependent friction. *Journal of Geophysical Research*, 105(B10), 23765-23789.
 
-### Rate-and-State Friction Applications
+### Rate-and-state friction applications
 
 - Marone, C. (1998). Laboratory-derived friction laws and their application to seismic faulting. *Annual Review of Earth and Planetary Sciences*, 26, 643-696.
 - Scholz, C. H. (1998). Earthquakes and friction laws. *Nature*, 391(6662), 37-42.
