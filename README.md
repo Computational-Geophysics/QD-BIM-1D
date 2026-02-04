@@ -321,6 +321,81 @@ All plots include proper units, labels, and physical interpretation aids.
 - SciPy: ODE integration (solve_ivp)
 - Matplotlib: Visualization and plotting
 
+## Running on HPC Systems
+
+### WildFly HPC System (NTU)
+
+The code can be executed on the WildFly High-Performance Computing cluster at Nanyang Technological University using the PBS (Portable Batch System) job scheduler.
+
+#### Prerequisites
+
+- Access to WildFly HPC system
+- Python 3.11.5 environment with required dependencies (NumPy, SciPy, Matplotlib)
+- PBS job script: `run_code.pbs`
+
+#### Setup
+
+Before running the simulation, edit `run_code.pbs` and replace `your.username` with your NTU account name in the virtual environment path:
+
+```bash
+source /home/your.username/venv_lstm_py311/bin/activate
+```
+
+#### Submitting a Job
+
+To submit the simulation to the job queue:
+
+```bash
+qsub run_code.pbs
+```
+
+#### Monitoring Job Status
+
+To check the status of your submitted job:
+
+```bash
+qstat -u your.username
+```
+
+Replace `your.username` with your NTU account name.
+
+#### Job Output
+
+By default, the PBS system creates two files in your working directory:
+- `fault_evolution_1d.o<JOB_ID>`: Standard output
+- `fault_evolution_1d.e<JOB_ID>`: Standard error/log messages
+
+where `<JOB_ID>` is the unique job identifier assigned by the scheduler.
+
+#### Job Configuration
+
+The PBS script is configured with the following default settings:
+- **Queue**: `qamd_wfly` (WildFly AMD queue)
+- **Wall time**: 120 hours (5 days)
+- **Resources**: 1 node, 1 CPU core
+- **Python version**: 3.11.5
+
+To modify these settings, edit the corresponding `#PBS` directives in `run_code.pbs`.
+
+#### Additional PBS Commands
+
+Useful commands for managing jobs:
+
+```bash
+# Delete a running or queued job
+qdel <JOB_ID>
+
+# View detailed job information
+qstat -f <JOB_ID>
+
+# View all jobs in the queue
+qstat -a
+
+# View queue status
+qstat -Q
+```
+
+
 ## References
 
 ### Fundamental theory

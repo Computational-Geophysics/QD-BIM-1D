@@ -1,0 +1,59 @@
+################################################################################
+# PBS Job Script for 1D Fault Evolution Simulation
+# WildFly HPC System - Nanyang Technological University
+#
+# USAGE: qsub run_code.pbs
+################################################################################
+
+# Job name (appears in queue listing)
+#PBS -N fault_evolution_1d
+
+# Project funding code
+#PBS -P eos_luca.dalzilio
+
+# Queue name (WildFly AMD queue)
+#PBS -q qamd_wfly
+# Alternative GPU queue (uncomment if GPU acceleration is needed)
+##PBS -q gpu_v100
+
+# Output and error files
+# Default format: <job_name>.o<JOB_ID> and <job_name>.e<JOB_ID>
+# Uncomment and modify the lines below to use custom filenames
+##PBS -o simulation_output.log
+##PBS -e simulation_error.log
+
+# Wall time limit (format: HH:MM:SS)
+# Current setting: 120 hours (5 days)
+#PBS -l walltime=120:00:00
+
+# Resource allocation
+# 1 node with 1 CPU core
+#PBS -l select=1:ncpus=1
+
+################################################################################
+# Environment Setup
+################################################################################
+
+# Load Python module
+module load python/3.11.5
+
+# Activate Python virtual environment
+# IMPORTANT: Replace 'your.username' with your NTU account name
+source /home/your.username/venv_lstm_py311/bin/activate
+
+################################################################################
+# Job Execution
+################################################################################
+
+# Change to working directory (where job was submitted from)
+cd $PBS_O_WORKDIR
+
+# Capture number of allocated cores (for reference)
+nprocs=`cat $PBS_NODEFILE | wc -l`
+
+# Run the fault evolution simulation
+python qd-bim-1d.py
+
+################################################################################
+# End of PBS Script
+################################################################################
